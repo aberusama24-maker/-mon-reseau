@@ -2,20 +2,314 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Mon réseau social</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TEK</title>
   <style>
-    body { font-family: sans-serif; max-width: 500px; margin: 20px auto; }
-    .post { border: 1px solid #ccc; padding: 10px; margin-top: 10px; border-radius: 8px; }
+    :root {
+      --fond: #f0f2f5; --carte: #ffffff; --texte: #1c1e21;
+      --discret: #65676b; --bordure: #e4e6eb;
+      --accent: #6c5ce7; --accent2: #a29bfe; --like: #e84393;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --fond: #18191a; --carte: #242526; --texte: #e4e6eb;
+              --discret: #b0b3b8; --bordure: #3a3b3c; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+           background: var(--fond); color: var(--texte); }
+    header { position: sticky; top: 0; z-index: 10; text-align: center; color: white;
+             padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,.15);
+             background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+    header h1 { margin: 0; font-size: 1.6rem; letter-spacing: 3px; }
+    header p { margin: 2px 0 0; font-size: .85rem; opacity: .9; }
+    main { max-width: 600px; margin: 0 auto; padding: 16px; }
+    main > .carte + .carte { margin-top: 14px; }
+    .carte { background: var(--carte); border: 1px solid var(--bordure);
+             border-radius: 14px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    textarea, input { width: 100%; padding: 10px; font: inherit; color: inherit;
+                      background: transparent; border: 1px solid var(--bordure); border-radius: 10px; }
+    textarea { min-height: 80px; resize: vertical; }
+    textarea:focus, input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+    label { display: block; margin: 12px 0 4px; font-size: .85rem; color: var(--discret); }
+    h2 { margin: 0 0 4px; font-size: 1.1rem; }
+    .barre { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    .compteur { font-size: .85rem; color: var(--discret); }
+    button { font: inherit; cursor: pointer; border: none; }
+    .btn-publier { background: var(--accent); color: white; padding: 8px 22px;
+                   border-radius: 20px; font-weight: 600; }
+    .btn-publier:hover { filter: brightness(1.1); }
+    .btn-secondaire { background: var(--fond); color: var(--texte); padding: 6px 14px;
+                      border-radius: 20px; border: 1px solid var(--bordure); }
+    .moi { display: flex; align-items: center; gap: 12px; }
+    .infos { flex: 1; min-width: 0; }
+    .avatar { width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; font-size: 1.3rem;
+              display: flex; align-items: center; justify-content: center;
+              background: linear-gradient(135deg, var(--accent), var(--accent2));
+              background-size: cover; background-position: center; }
+    .avatar.grand { width: 72px; height: 72px; font-size: 2.2rem; }
+    .nom { font-weight: 600; }
+    .bio { font-size: .85rem; color: var(--discret); overflow-wrap: anywhere; }
+    .photo-ligne { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .boutons-photo { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+    .avatars { display: flex; flex-wrap: wrap; gap: 8px; }
+    .choix { width: 44px; height: 44px; border-radius: 50%; font-size: 1.4rem;
+             background: var(--fond); border: 2px solid transparent; }
+    .choix.actif { border-color: var(--accent); }
+    .erreur { color: #d63031; font-size: .85rem; min-height: 1em; margin: 8px 0 0; }
+    .post { margin-top: 14px; animation: apparition .3s ease; }
+    .entete { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .post p { margin: 0; line-height: 1.45; white-space: pre-wrap; word-wrap: break-word; }
+    .actions { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bordure); }
+    .btn-like { background: transparent; color: var(--discret); padding: 6px 14px; border-radius: 20px; }
+    .btn-like:hover { background: var(--fond); color: var(--like); }
+    .vide { text-align: center; color: var(--discret); margin-top: 40px; }
+    @keyframes apparition { from { opacity: 0; transform: translateY(8px); }
+                            to { opacity: 1; transform: none; } }
   </style>
 </head>
 <body>
-  <h1>Mon réseau</h1>
-  <textarea id="texte" placeholder="Quoi de neuf ?" rows="3" style="width:100%"></textarea>
-  <button onclick="publier()">Publier</button>
-  <div id="fil"></div>
+  <header>
+    <h1>TEK</h1>
+    <p>Partage tes idées avec le monde</p>
+  </header>
+
+  <main>
+    <!-- Mon profil (résumé) -->
+    <div class="carte moi">
+      <div class="avatar" id="monAvatar"></div>
+      <div class="infos">
+        <div class="nom" id="monPseudo"></div>
+        <div class="bio" id="maBio"></div>
+      </div>
+      <button class="btn-secondaire" onclick="ouvrirProfil()">Modifier</button>
+    </div>
+
+    <!-- Formulaire de modification du profil -->
+    <div class="carte" id="panneau" hidden>
+      <h2>Mon profil</h2>
+
+      <label>Photo de profil</label>
+      <div class="photo-ligne">
+        <div class="avatar grand" id="apercu"></div>
+        <div class="boutons-photo">
+          <button type="button" class="btn-secondaire"
+                  onclick="document.getElementById('fichier').click()">Choisir une photo</button>
+          <button type="button" class="btn-secondaire" id="btnRetirer"
+                  onclick="retirerPhoto()">Retirer la photo</button>
+        </div>
+        <input type="file" id="fichier" accept="image/*" hidden>
+      </div>
+
+      <label>Avatar (affiché si tu n'as pas de photo)</label>
+      <div class="avatars" id="choixAvatars"></div>
+
+      <label for="champPseudo">Pseudo</label>
+      <input id="champPseudo" maxlength="20" placeholder="Ton pseudo">
+      <label for="champBio">Bio</label>
+      <textarea id="champBio" maxlength="100" rows="2" placeholder="Parle un peu de toi"></textarea>
+
+      <p class="erreur" id="message"></p>
+      <div class="barre">
+        <button class="btn-secondaire" onclick="fermerProfil()">Annuler</button>
+        <button class="btn-publier" onclick="enregistrerProfil()">Enregistrer</button>
+      </div>
+    </div>
+
+    <!-- Nouvelle publication -->
+    <div class="carte">
+      <textarea id="texte" maxlength="280" placeholder="Quoi de neuf ?"></textarea>
+      <div class="barre">
+        <span class="compteur" id="compteur">0 / 280</span>
+        <button class="btn-publier" onclick="publier()">Publier</button>
+      </div>
+    </div>
+
+    <div id="fil"></div>
+  </main>
 
   <script>
+    const MAX = 280;
+    const AVATARS = ["🦊", "🐼", "🦁", "🐸", "🐙", "🦄", "🐯", "🐵"];
+    const JSON_HEADERS = { "Content-Type": "application/json" };
+
+    let monProfil = null;
+    let avatarChoisi = AVATARS[0];
+    // undefined = pas de changement, null = retirer la photo, texte = nouvelle photo
+    let photoEnAttente;
     let publications = [];
+
+    const zone = document.getElementById("texte");
+    const compteur = document.getElementById("compteur");
+
+    zone.addEventListener("input", () => {
+      compteur.textContent = zone.value.length + " / " + MAX;
+    });
+    zone.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && e.key === "Enter") publier();
+    });
+
+    // Affiche une photo si elle existe, sinon l'avatar animal
+    function dessinerAvatar(element, photoUrl, emoji) {
+      if (photoUrl) {
+        element.style.backgroundImage = 'url("' + photoUrl + '")';
+        element.textContent = "";
+      } else {
+        element.style.backgroundImage = "";
+        element.textContent = emoji;
+      }
+    }
+
+    // ----- Profil -----
+
+    async function initProfil() {
+      let id = null;
+      try { id = localStorage.getItem("profilId"); } catch (e) {}
+
+      if (id) {
+        const reponse = await fetch("/api/profils/" + id);
+        if (reponse.ok) {
+          monProfil = await reponse.json();
+          return;
+        }
+      }
+      // Pas de profil (ou le serveur l'a perdu) : on en crée un
+      const reponse = await fetch("/api/profils", {
+        method: "POST", headers: JSON_HEADERS, body: JSON.stringify({})
+      });
+      monProfil = await reponse.json();
+      try { localStorage.setItem("profilId", monProfil.id); } catch (e) {}
+    }
+
+    function afficherMoi() {
+      dessinerAvatar(document.getElementById("monAvatar"), monProfil.photoUrl, monProfil.avatar);
+      document.getElementById("monPseudo").textContent = monProfil.pseudo;
+      document.getElementById("maBio").textContent = monProfil.bio || "Aucune bio";
+    }
+
+    function dessinerAvatars() {
+      const conteneur = document.getElementById("choixAvatars");
+      conteneur.innerHTML = "";
+      AVATARS.forEach(a => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choix" + (a === avatarChoisi ? " actif" : "");
+        b.textContent = a;
+        b.onclick = () => { avatarChoisi = a; dessinerAvatars(); majApercu(); };
+        conteneur.append(b);
+      });
+    }
+
+    function majApercu() {
+      const url = photoEnAttente === undefined ? monProfil.photoUrl : photoEnAttente;
+      dessinerAvatar(document.getElementById("apercu"), url, avatarChoisi);
+      document.getElementById("btnRetirer").hidden = !url;
+    }
+
+    function ouvrirProfil() {
+      document.getElementById("champPseudo").value = monProfil.pseudo;
+      document.getElementById("champBio").value = monProfil.bio;
+      document.getElementById("message").textContent = "";
+      avatarChoisi = monProfil.avatar;
+      photoEnAttente = undefined;
+      dessinerAvatars();
+      majApercu();
+      document.getElementById("panneau").hidden = false;
+    }
+
+    function fermerProfil() {
+      document.getElementById("panneau").hidden = true;
+    }
+
+    // Réduit la photo à 160x160 (recadrée en carré) pour qu'elle soit légère
+    function redimensionner(fichier) {
+      return new Promise((resolve, reject) => {
+        const lecteur = new FileReader();
+        lecteur.onerror = reject;
+        lecteur.onload = () => {
+          const img = new Image();
+          img.onerror = reject;
+          img.onload = () => {
+            const taille = 160;
+            const canvas = document.createElement("canvas");
+            canvas.width = taille;
+            canvas.height = taille;
+            const cote = Math.min(img.width, img.height);
+            const sx = (img.width - cote) / 2;
+            const sy = (img.height - cote) / 2;
+            canvas.getContext("2d").drawImage(img, sx, sy, cote, cote, 0, 0, taille, taille);
+            resolve(canvas.toDataURL("image/jpeg", 0.8));
+          };
+          img.src = lecteur.result;
+        };
+        lecteur.readAsDataURL(fichier);
+      });
+    }
+
+    document.getElementById("fichier").addEventListener("change", async (e) => {
+      const fichier = e.target.files[0];
+      const message = document.getElementById("message");
+      if (!fichier) return;
+      if (!fichier.type.startsWith("image/")) {
+        message.textContent = "Choisis un fichier image.";
+        return;
+      }
+      try {
+        photoEnAttente = await redimensionner(fichier);
+        message.textContent = "";
+        majApercu();
+      } catch (err) {
+        message.textContent = "Impossible de lire cette image. Essaie une photo JPG ou PNG.";
+      }
+      e.target.value = "";
+    });
+
+    function retirerPhoto() {
+      photoEnAttente = null;
+      majApercu();
+    }
+
+    async function enregistrerProfil() {
+      const pseudo = document.getElementById("champPseudo").value.trim();
+      const bio = document.getElementById("champBio").value.trim();
+      const message = document.getElementById("message");
+
+      if (pseudo === "") {
+        message.textContent = "Le pseudo ne peut pas être vide.";
+        return;
+      }
+      const reponse = await fetch("/api/profils/" + monProfil.id, {
+        method: "PUT", headers: JSON_HEADERS,
+        body: JSON.stringify({ pseudo: pseudo, bio: bio, avatar: avatarChoisi })
+      });
+      if (!reponse.ok) {
+        message.textContent = "Impossible d'enregistrer. Réessaie.";
+        return;
+      }
+      monProfil = await reponse.json();
+
+      if (photoEnAttente !== undefined) {
+        const adresse = "/api/profils/" + monProfil.id + "/photo";
+        const repPhoto = photoEnAttente === null
+          ? await fetch(adresse, { method: "DELETE" })
+          : await fetch(adresse, {
+              method: "PUT", headers: JSON_HEADERS,
+              body: JSON.stringify({ photo: photoEnAttente })
+            });
+        if (!repPhoto.ok) {
+          message.textContent = "Profil enregistré, mais la photo n'a pas pu l'être.";
+          afficherMoi();
+          charger();
+          return;
+        }
+        monProfil = await repPhoto.json();
+      }
+
+      afficherMoi();
+      fermerProfil();
+      charger();
+    }
+
+    // ----- Publications -----
 
     async function charger() {
       const reponse = await fetch("/api/publications");
@@ -27,33 +321,75 @@
       const fil = document.getElementById("fil");
       fil.innerHTML = "";
 
+      if (publications.length === 0) {
+        const vide = document.createElement("p");
+        vide.className = "vide";
+        vide.textContent = "Aucune publication pour l'instant. Sois le premier !";
+        fil.append(vide);
+        return;
+      }
+
       publications.forEach(pub => {
         const post = document.createElement("div");
-        post.className = "post";
+        post.className = "carte post";
+
+        const entete = document.createElement("div");
+        entete.className = "entete";
+        const avatar = document.createElement("div");
+        avatar.className = "avatar";
+        dessinerAvatar(avatar, pub.photoUrl, pub.avatar);
+        const infos = document.createElement("div");
+        infos.className = "infos";
+        const nom = document.createElement("div");
+        nom.className = "nom";
+        nom.textContent = pub.pseudo;
+        infos.append(nom);
+        if (pub.bio) {
+          const bio = document.createElement("div");
+          bio.className = "bio";
+          bio.textContent = pub.bio;
+          infos.append(bio);
+        }
+        entete.append(avatar, infos);
 
         const texte = document.createElement("p");
         texte.textContent = pub.texte;
 
+        const actions = document.createElement("div");
+        actions.className = "actions";
         const bouton = document.createElement("button");
-        bouton.textContent = "J'aime (" + pub.likes + ")";
+        bouton.className = "btn-like";
+        bouton.textContent = "❤ " + pub.likes;
         bouton.onclick = () => aimer(pub.id);
+        actions.append(bouton);
 
-        post.append(texte, bouton);
+        post.append(entete, texte, actions);
         fil.prepend(post);
       });
     }
 
+    function envoyer(texte) {
+      return fetch("/api/publications", {
+        method: "POST", headers: JSON_HEADERS,
+        body: JSON.stringify({ texte: texte, profilId: monProfil.id })
+      });
+    }
+
     async function publier() {
-      const texte = document.getElementById("texte").value;
+      const texte = zone.value;
       if (texte.trim() === "") return;
 
-      await fetch("/api/publications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texte: texte })
-      });
+      let reponse = await envoyer(texte);
+      if (reponse.status === 400) {
+        // Le serveur ne connaît plus ce profil : on le recrée et on réessaie
+        await initProfil();
+        afficherMoi();
+        reponse = await envoyer(texte);
+      }
+      if (!reponse.ok) return;
 
-      document.getElementById("texte").value = "";
+      zone.value = "";
+      compteur.textContent = "0 / " + MAX;
       charger();
     }
 
@@ -62,7 +398,12 @@
       charger();
     }
 
-    charger();
+    async function demarrer() {
+      await initProfil();
+      afficherMoi();
+      await charger();
+    }
+    demarrer();
   </script>
 </body>
 </html>
