@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mon réseau social</title>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: 20px auto; }
+    .post { border: 1px solid #ccc; padding: 10px; margin-top: 10px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Mon réseau</h1>
+  <textarea id="texte" placeholder="Quoi de neuf ?" rows="3" style="width:100%"></textarea>
+  <button onclick="publier()">Publier</button>
+  <div id="fil"></div>
+
+  <script>
+    let publications = [];
+
+    async function charger() {
+      const reponse = await fetch("/api/publications");
+      publications = await reponse.json();
+      afficher();
+    }
+
+    function afficher() {
+      const fil = document.getElementById("fil");
+      fil.innerHTML = "";
+
+      publications.forEach(pub => {
+        const post = document.createElement("div");
+        post.className = "post";
+
+        const texte = document.createElement("p");
+        texte.textContent = pub.texte;
+
+        const bouton = document.createElement("button");
+        bouton.textContent = "J'aime (" + pub.likes + ")";
+        bouton.onclick = () => aimer(pub.id);
+
+        post.append(texte, bouton);
+        fil.prepend(post);
+      });
+    }
+
+    async function publier() {
+      const texte = document.getElementById("texte").value;
+      if (texte.trim() === "") return;
+
+      await fetch("/api/publications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texte: texte })
+      });
+
+      document.getElementById("texte").value = "";
+      charger();
+    }
+
+    async function aimer(id) {
+      await fetch("/api/publications/" + id + "/aimer", { method: "POST" });
+      charger();
+    }
+
+    charger();
+  </script>
+</body>
+</html>
